@@ -1,0 +1,667 @@
+﻿<ew:AppWindowBase 
+		xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+		xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+		xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+		xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+		xmlns:ew="clr-namespace:Dale.ManageRooms.Wpf;assembly=Dale.ManageRooms"
+		xmlns:Dale="clr-namespace:Dale.UI.Wpf.Controls;assembly=Dale.UI.Wpf"
+		xmlns:dxb="http://schemas.devexpress.com/winfx/2008/xaml/bars" 
+		xmlns:dxg="http://schemas.devexpress.com/winfx/2008/xaml/grid"
+		xmlns:Rooms="clr-namespace:Dale.ManageRooms.Common.Rooms"		
+		xmlns:system="clr-namespace:System;assembly=mscorlib"
+		x:Class="Dale.ManageRooms.Common.Rooms.RoomManager"
+		Title="Room Manager" Width="1150" Height="720" WindowStartupLocation="CenterScreen" Loaded="RoomManager_Loaded" 		
+		Closing="RoomManager_Closing" ToolTipService.ShowOnDisabled="True" WindowState="Maximized" 
+		Icon="/Dale.ManageRooms.Common;component/DaleImage/16/Room_16px.png">
+	<ew:AppWindowBase.Resources>
+		<ResourceDictionary>
+			<ResourceDictionary.MergedDictionaries>
+				<ResourceDictionary Source="/Dale.ManageRooms.Common;component/DaleImage/Images.xaml"/>
+				<ResourceDictionary Source="/Dale.UI.Wpf;component/Styles/Common.xaml"/>
+				<ResourceDictionary Source="/Dale.UI.Wpf;component/Styles/ControlStyles.xaml"/>
+				<ResourceDictionary Source="/Dale.UI.Wpf;component/Styles/DefaultControlStyles.xaml"/>
+				<ResourceDictionary Source="/Dale.UI.Wpf;component/Converters/Converters.xaml"/>
+				<ResourceDictionary Source="/Dale.UI.Wpf;component/Resources/CommonInputMasks.xaml"/>
+			</ResourceDictionary.MergedDictionaries>
+			
+			<Style TargetType="{x:Type Rooms:RoomInstanceFilterControl}" BasedOn="{StaticResource FormControlBaseStyle}">	
+				<Setter Property="Margin" Value="0,4,0,0"/>
+			</Style>
+
+			<Style x:Key="PhoneNumberStyle" TargetType="TextBox">
+				<Setter Property="Margin" Value="0"/>
+				<Setter Property="Padding" Value="0"/>
+				<Setter Property="HorizontalAlignment" Value="Left"/>
+				<Setter Property="VerticalAlignment" Value="Bottom"/>
+				<Setter Property="Height" Value="20"/>
+				<Setter Property="Width" Value="145"/>
+			</Style>
+			
+			<Style x:Key="InstanceGridControlStyle" TargetType="{x:Type Dale:DaleGridControl}" BasedOn="{StaticResource DaleGridControlStyle}">
+				<Setter Property="Margin" Value="0,8,0,0"/>
+				<Setter Property="SelectionMode" Value="Row"/>	
+				<Setter Property="AutomaticallyBestFitColumns" Value="True"/>
+			</Style>
+			
+		</ResourceDictionary>
+	</ew:AppWindowBase.Resources>
+
+	<!--Main Grid-->
+	<Grid x:Name="LayoutRoot">
+
+		<Grid.RowDefinitions>
+			<RowDefinition Height="*"/>
+		</Grid.RowDefinitions>
+
+		<!--Region Loading Panel-->
+		<Dale:DaleLoadingPanel  Grid.ColumnSpan="3" StatusText="{Binding LoadingStatusText}" 
+								 Visibility="{Binding IsLoading, Converter={StaticResource BoolToVisibilityConvert}, FallbackValue=Collapsed}"  
+								 Panel.ZIndex="1000"/>
+		<!--EndRegion Loading Panel-->
+
+		<Grid Style="{StaticResource FormContainerStyle}">
+			<Grid.ColumnDefinitions>
+				<ColumnDefinition Width="200"/>
+				<ColumnDefinition Width="5"/>
+				<ColumnDefinition Width="*"/>
+			</Grid.ColumnDefinitions>
+
+			<!--Region Room Selector Grid-->
+			<Grid>
+				<Grid.RowDefinitions>
+					<RowDefinition Height="Auto"/>
+					<RowDefinition Height="Auto"/>
+					<RowDefinition Height="*"/>
+				</Grid.RowDefinitions>
+
+				<Dale:DaleSectionHeader Grid.Row="0" Text="Rooms"/>
+
+				<!--Room buttons-->
+				<Dale:DaleToolBarControl Grid.Row="1" AutomationProperties.AutomationId="tbRoomListButtons">
+					<Dale:DaleRibbonButton ToolTip="Add new Room" Glyph="{StaticResource Room16}" Content="Add New" IsEnabled="{Binding IsAddInProgress, Converter={StaticResource BoolInverseConvert}, FallbackValue=true}" ItemClick="AddRoom_Click"/>
+					<Dale:DaleRibbonButton Glyph="{StaticResource RoomTypeCInstance16}" Content="Instance Numbers" ItemClick="RoomTypeCInstanceNumbers_Click" />
+				</Dale:DaleToolBarControl>
+
+				<!--Room Selector Grid-->
+				<Dale:DaleGridControl Grid.Row="3"  ItemsSource="{Binding RoomDisplays}" SelectedItem="{Binding CurrentlySelectedRoom}">
+					<dxg:GridControl.Columns>
+						<dxg:GridColumn FieldName="ControlCode" Width="59" Binding="{Binding ControlCode, ValidatesOnNotifyDataErrors=False}" Header="Code" SortIndex="0" SortOrder="Ascending" >
+							<dxg:GridColumn.CellStyle>
+								<Style TargetType="{x:Type dxg:LightweightCellEditor}" BasedOn="{StaticResource DaleGridControlCellStyle}">
+									<Style.Triggers>
+										<DataTrigger  Binding="{Binding RowData.Row.IsMaster}" Value="True">
+											<Setter Property="FontFamily" Value="{StaticResource BoldFont}"/>
+										</DataTrigger>
+									</Style.Triggers>
+								</Style>
+							</dxg:GridColumn.CellStyle>
+						</dxg:GridColumn>
+						<dxg:GridColumn FieldName="InternalName" Width="139"  Binding="{Binding InternalName, ValidatesOnNotifyDataErrors=False}" Header="Name" >
+							<dxg:GridColumn.CellStyle>
+								<Style TargetType="{x:Type dxg:LightweightCellEditor}" BasedOn="{StaticResource DaleGridControlCellStyle}">
+									<Style.Triggers>
+										<DataTrigger  Binding="{Binding RowData.Row.IsMaster}" Value="True">
+											<Setter Property="FontFamily" Value="{StaticResource BoldFont}"/>
+										</DataTrigger>
+									</Style.Triggers>
+								</Style>
+							</dxg:GridColumn.CellStyle>
+						</dxg:GridColumn>
+					</dxg:GridControl.Columns>
+					<Dale:DaleGridControl.View>
+						<Dale:DaleTableView FocusedRowChanging="dgRooms_FocusedRowChanging"/>
+					</Dale:DaleGridControl.View>
+				</Dale:DaleGridControl>
+			</Grid>
+			<!--EndRegion Room Selector Grid-->
+			
+			<!-- Region Vertical Separator-->
+			<Rectangle Grid.Column="1" Margin="2">
+				<Rectangle.Fill>
+					<LinearGradientBrush EndPoint="0,1" StartPoint="0,0">
+						<GradientStop Color="White" Offset=".03"/>
+						<GradientStop Color="{StaticResource HeaderSeparatorColor}" Offset=".5"/>
+						<GradientStop Color="White" Offset=".97"/>
+					</LinearGradientBrush>
+				</Rectangle.Fill>
+			</Rectangle>
+			<!-- EndRegion Vertical Separator-->
+
+			<!--Region Tabs-->
+			<Grid Grid.Column="2" DataContext="{Binding CurrentlySelectedRoom}" IsEnabled="{Binding DataContext.CurrentlySelectedRoom, ElementName=LayoutRoot, Converter={StaticResource NullToBoolConvert}}">				
+
+				<Grid.RowDefinitions>
+					<RowDefinition Height="Auto"/>
+					<RowDefinition Height="*"/>
+				</Grid.RowDefinitions>
+
+				<!--Room Header-->
+				<Dale:DaleSectionHeader Grid.Row="0" Text="{Binding InternalName, ValidatesOnNotifyDataErrors=False}"/>
+
+				<Dale:DaleTabControl Grid.Row="1" AutomationProperties.AutomationId="tcRoomDetailTabs" >
+					<Dale:DaleTabControl.Resources>
+						<Style TargetType="{x:Type Dale:DaleTabItem}" BasedOn="{StaticResource MainTabItemStyle}"/>
+						
+						<!--Region Shared Tab Button Tooltips-->
+						<system:String x:Key="InstanceRefreshTooltip">Refresh the list of Instances.</system:String>
+						<system:String x:Key="ViewInstanceTooltip">View the selected Instance.</system:String>
+						<system:String x:Key="MoveInstanceTooltip">Move Instances to another Roomate.</system:String>
+						<!--EndRegion Shared Tab Button Tooltips-->
+						
+					</Dale:DaleTabControl.Resources>
+					<!--Region General Tab-->
+					<Dale:DaleTabItem>
+						<Dale:DaleTabItem.Header>
+							<TextBlock Style="{StaticResource MainTabItemHeaderTextStyle}">General</TextBlock>
+						</Dale:DaleTabItem.Header>
+
+						<!--General Tab Layout Grid-->
+						<Grid IsEnabled="{Binding Path=DataContext.CanManageRooms, ElementName=LayoutRoot}" Grid.IsSharedSizeScope="True">
+							<Grid.RowDefinitions>
+								<RowDefinition Height="Auto"/>
+								<RowDefinition Height="Auto"/>
+								<RowDefinition Height="Auto"/>
+								<RowDefinition Height="Auto"/>
+								<RowDefinition Height="*"/>
+							</Grid.RowDefinitions>
+
+							<!--Room Detail Buttons-->
+							<Dale:DaleToolBarControl Grid.Row="0" AutomationProperties.AutomationId="tbRoomDetailButtons">
+								<Dale:DaleRibbonButton Glyph="{StaticResource Save16}" Content="Save" IsEnabled="{Binding IsDirty}" ToolTip="Save changes to Room." ItemClick="Save_Click"/>
+							</Dale:DaleToolBarControl>
+
+							<!--Region General Info Container-->
+							<Grid Grid.Row="1">
+								<Grid.RowDefinitions>
+									<RowDefinition Height="Auto" />
+									<RowDefinition Height="Auto" />
+									<RowDefinition Height="Auto" />
+									<RowDefinition Height="Auto" />
+									<RowDefinition Height="Auto" />									
+								</Grid.RowDefinitions>
+								<Grid.ColumnDefinitions>
+									<ColumnDefinition SharedSizeGroup="GeneralColumn1" Width="Auto"/>
+									<ColumnDefinition Width="Auto" MinWidth ="175"/>
+									<ColumnDefinition Width="Auto"/>
+									<ColumnDefinition Width="5"/>
+									<ColumnDefinition Width="Auto"/>
+									<ColumnDefinition Width="Auto"/>
+								</Grid.ColumnDefinitions>
+
+								<!--Internal Name-->
+								<Dale:DaleTextBlock Style="{StaticResource LabelStyle}" Text="Internal Name:" />
+								<Dale:DaleTextBox Grid.Column="1" Text="{Binding InternalName}" HorizontalAlignment="Left" Width="268" VerticalAlignment="Bottom"	InputMask="CCCCCCCCCC"/>
+
+								<!--Control Code-->
+								<Dale:DaleTextBlock Grid.Row="1"  Style="{StaticResource LabelStyle}" Text="Control Code:" />
+								<Dale:DaleTextBox Grid.Row="1" Grid.Column="1" Text="{Binding ControlCode }" HorizontalAlignment="Left" VerticalAlignment="Bottom" Width="268" InputMask="CCC" />
+
+								<!--Level Checkbox-->
+								<Dale:DaleTextBlock Grid.Row="2"  HorizontalAlignment="Right" Style="{StaticResource LabelStyle}" Text="Is Level:" />
+
+								<!--Level Combo Box-->
+								<Grid Grid.Row="2" Grid.Column="1">
+									<Grid.ColumnDefinitions>
+										<ColumnDefinition Width="Auto"/>
+										<ColumnDefinition Width="Auto"/>
+										<ColumnDefinition Width="Auto"/>
+									</Grid.ColumnDefinitions>
+
+									<Dale:DaleCheckBox  Margin="4,0,0,2"  MinWidth="15" MaxWidth="15" HorizontalAlignment="Left" VerticalAlignment="Bottom" IsChecked="{Binding IsMaster}" Padding="-4,4,0,0" />
+									<Dale:DaleTextBlock  Margin="5,0,0,2" Grid.Column="1" MinWidth="40" MaxWidth="40"  Text="Level:"  IsEnabled="{Binding IsMaster, Converter={StaticResource BoolInverseConvert}}"/>
+									<Dale:DaleFilterableComboBox  Grid.Column="2" Margin="5,0,0,0" MinWidth="199" MaxWidth="199"  IsEnabled="{Binding IsMaster, Converter={StaticResource BoolInverseConvert}}" ItemsSource="{Binding Leveles}" CodeColumnDisplayMemberPath="RoomCode" 
+														DescriptionColumnDisplayMemberPath="RoomInternalName" DisplayMemberPath="RoomInternalName" VerticalAlignment="Bottom"   
+														SelectedValuePath="RoomCode" SelectedValue="{Binding LevelCode, Converter={StaticResource StringConvert}}"/>
+								</Grid>
+
+								<!--Phone Number-->
+								<Dale:DaleTextBlock Grid.Row="3"  Style="{StaticResource LabelStyle}" Text="Phone:" />
+								<Dale:DaleTextBox Grid.Row="3" Grid.Column="1" Text="{Binding PhoneNumber}" InputMask="{StaticResource FullPhoneMask}" Width="268"/>
+								
+								<!--Email-->
+								<Dale:DaleTextBlock Grid.Row="4"  Style="{StaticResource LabelStyle}" Text="Email:" />
+								<Dale:DaleTextBox Grid.Row="4" Grid.Column="1" Grid.ColumnSpan="2" Style="{StaticResource FormTextBoxStyle}" Text="{Binding Email }" Width="268" />
+
+								<!--Last Edited By-->
+								<Dale:DaleTextBlock  Grid.Column="4" Style="{StaticResource LabelStyle}" Text="Last Edited by:" />
+								<Dale:DaleTextBlock  Grid.Column="5"	Style="{StaticResource DisplayValueStyle}" Text="{Binding LastEditedBy}"/>
+
+								<!--Closed Year-->
+								<Dale:DaleTextBlock Grid.Row="1" Grid.Column="4" Style="{StaticResource LabelStyle}" Text="Closed Year:" />
+								<Dale:DaleTextBox Grid.Row="1" Grid.Column="5" Text="{Binding ClosedYear}" InputMask="0000" MinWidth="90" MaxWidth="90" Margin="0,0,0,2"/>
+
+								<!--Toll Free-->
+								<Dale:DaleTextBlock Grid.Row="2" Grid.Column="4" Style="{StaticResource LabelStyle}" Text="Toll Free:" />
+								<Dale:DaleTextBox Grid.Row="2" Grid.Column="5" Text="{Binding TollFreeNumber}" InputMask="{StaticResource FullPhoneMask}" MinWidth="90" MaxWidth="90"/>														
+
+								<!--Commissions-->
+								<Dale:DaleTextBlock Grid.Row="3" Grid.Column="4" Style="{StaticResource LabelStyle}" Text="Commissions:" />
+								<Dale:DaleTextBox Grid.Row="3" Grid.Column="5" Text="{Binding CommissionsNumber}" InputMask="{StaticResource FullPhoneMask}" MinWidth="90" MaxWidth="90"/>
+
+								<!--Fax Number-->
+								<Dale:DaleTextBlock Grid.Row="4" Grid.Column="4" Style="{StaticResource LabelStyle}" Text="Fax:" />
+								<Dale:DaleTextBox Grid.Row="4" Grid.Column="5" Text="{Binding FaxNumber}" InputMask="{StaticResource FullPhoneMask}" MinWidth="90" MaxWidth="90"/>
+								
+							</Grid>
+							<!--EndRegion General Info Container-->
+
+							<!--Region Mailing Name/Address Section-->
+							<Grid Grid.Row="2" Style="{StaticResource FormComponentContainerStyle}">
+								<Grid.RowDefinitions>
+									<RowDefinition Height="Auto"/>
+									<RowDefinition Height="Auto"/>
+									<RowDefinition Height="Auto"/>
+									<RowDefinition Height="Auto"/>
+									<RowDefinition Height="Auto"/>
+									<RowDefinition Height="Auto"/>
+								</Grid.RowDefinitions>
+								<Grid.ColumnDefinitions>
+									<ColumnDefinition SharedSizeGroup="GeneralColumn1" Width="Auto"/>
+									<ColumnDefinition Width="*"/>
+								</Grid.ColumnDefinitions>
+
+								<Dale:DaleSectionHeader  Text="Mailing Address" Grid.ColumnSpan="2"/>
+
+								<!--Mailing Address Name-->
+								<Dale:DaleTextBlock Grid.Row="1"   Style="{StaticResource LabelStyle}" Text="Name:" />
+								<Dale:DaleTextBox  Grid.Row="1" Grid.Column="1" Grid.ColumnSpan="2" Text="{Binding MailingAddressName }" Width="467"	/>
+
+								<!--Mailing Address Description-->
+								<Dale:DaleTextBlock Grid.Row="2"   Style="{StaticResource LabelStyle}" Text="Description:"/>
+								<Dale:DaleTextBox Grid.Row="2" Grid.Column="1"	Grid.ColumnSpan="2"	Text="{Binding MailingAddressDescription }" Width="467"/>
+
+								<!--Mailing Address Line 1-->
+								<Dale:DaleTextBlock Grid.Row="3"   Style="{StaticResource LabelStyle}" Text="Address:" />
+								<Dale:DaleTextBox Grid.Row="3" Grid.Column="1"	Grid.ColumnSpan="2" Text="{Binding MailingAddressLine1 }" Width="467" />
+
+								<!--Mailing Address Line 2-->
+								<Dale:DaleTextBlock Grid.Row="4"   Style="{StaticResource LabelStyle}" Text="" />
+								<Dale:DaleTextBox Grid.Row="4" Grid.Column="1"	Grid.ColumnSpan="2" Text="{Binding MailingAddressLine2 }" Width="467" />
+
+								<!--Mailing Address City/State/Zip-->
+								<Dale:DaleTextBlock Grid.Row="5"   Style="{StaticResource LabelStyle}" Text="City:" />
+								<Grid Grid.Row="5" Grid.Column="1" Grid.ColumnSpan="3">
+									<Grid.ColumnDefinitions>
+										<ColumnDefinition Width="Auto"/>
+										<ColumnDefinition Width="Auto"/>
+										<ColumnDefinition Width="Auto"/>
+										<ColumnDefinition Width="Auto"/>
+										<ColumnDefinition Width="Auto"/>
+										<ColumnDefinition Width="Auto"/>
+										<ColumnDefinition Width="*"/>
+									</Grid.ColumnDefinitions>
+
+									<!--Mailing Address City-->
+									<Dale:DaleTextBox  Grid.Column="1" Text="{Binding MailingAddressCity}" Width="253" />
+
+									<!--Mailing Address State-->
+									<Dale:DaleTextBlock  Grid.Column="2" HorizontalAlignment="Left" Style="{StaticResource LabelStyle}" Text="State:"/>
+									<Dale:DaleComboBox  Grid.Column="3" MinWidth="40" MaxWidth="40" ItemsSource="{Binding DataContext.States, ElementName=LayoutRoot}" 
+													  DisplayMemberPath="Abbreviation" SelectedValuePath="Abbreviation" 
+													  SelectedValue="{Binding MailingAddressStateCode, Converter={StaticResource StringConvert}}"/>
+
+									<!--Mailing Address Zip-->
+									<Dale:DaleTextBlock  Grid.Column="4" HorizontalAlignment="Left" Style="{StaticResource LabelStyle}" Text="Zip:" />
+									<Dale:DaleTextBox   Grid.Column="5" MinWidth="70"  MaxWidth="70" Text="{Binding MailingAddressZip}" InputMask="{StaticResource ZipWithExtension}"/>
+								</Grid>
+							</Grid>
+							<!--EndRegion Mailing Name/Address Section-->
+
+							<!--Region Location Address Section-->
+							<Grid Grid.Row="3" Style="{StaticResource FormComponentContainerStyle}">
+								<Grid.RowDefinitions>
+									<RowDefinition Height="Auto"/>
+									<RowDefinition Height="Auto"/>
+								</Grid.RowDefinitions>
+
+								<Grid>
+									<Dale:DaleSectionHeader  Text="Location Address" />
+								</Grid>
+
+								<Grid Grid.Row="1">
+									<Grid.RowDefinitions>
+										<RowDefinition Height="Auto"/>
+										<RowDefinition Height="Auto"/>
+										<RowDefinition Height="Auto"/>
+										<RowDefinition Height="Auto"/>
+									</Grid.RowDefinitions>
+									<Grid.ColumnDefinitions>
+										<ColumnDefinition SharedSizeGroup="GeneralColumn1" Width="Auto"/>
+										<ColumnDefinition Width="Auto"/>
+										<ColumnDefinition Width="*"/>
+									</Grid.ColumnDefinitions>
+
+									<!--Location Address Line 1 -->
+									<Dale:DaleTextBlock Grid.Row="1"   Style="{StaticResource LabelStyle}" Text="Address:" />
+									<Dale:DaleTextBox Grid.Row="1" Grid.Column="1" Grid.ColumnSpan="3" Text="{Binding LocationAddressLine1 }" Width="467" />
+
+									<!--Location Address Line 2 -->
+									<Dale:DaleTextBlock Grid.Row="2"   Style="{StaticResource LabelStyle}" Text="" />
+									<Dale:DaleTextBox Grid.Row="2" Grid.Column="1" Grid.ColumnSpan="3" Text="{Binding LocationAddressLine2 }" Width="467" />
+
+									<!--Location Address City/State/Zip-->
+									<Dale:DaleTextBlock Grid.Row="3"   Style="{StaticResource LabelStyle}" Text="City:" />
+									<Grid Grid.Row="3" Grid.Column="1" Grid.ColumnSpan="5" >
+										<Grid.ColumnDefinitions>
+											<ColumnDefinition Width="Auto"/>
+											<ColumnDefinition Width="Auto"/>
+											<ColumnDefinition Width="Auto"/>
+											<ColumnDefinition Width="Auto"/>
+											<ColumnDefinition Width="Auto"/>
+											<ColumnDefinition Width="*"/>											
+										</Grid.ColumnDefinitions>
+
+										<!--Location Address City-->
+										<Dale:DaleTextBox Grid.Row="6" Grid.Column="1" Text="{Binding LocationAddressCity }" Width="253"/>
+
+										<!--Location Address State-->
+										<Dale:DaleTextBlock  Grid.Column="2" HorizontalAlignment="Left" Style="{StaticResource LabelStyle}" Text="State:" />
+										<Dale:DaleComboBox  Grid.Column="3" MinWidth="40" MaxWidth="40" ItemsSource="{Binding DataContext.States, ElementName=LayoutRoot}" 
+														  DisplayMemberPath="Abbreviation" SelectedValuePath="Abbreviation" 
+														SelectedValue="{Binding LocationAddressStateCode, Converter={StaticResource StringConvert}}"/>
+
+										<!--Location Address Zip-->
+										<Dale:DaleTextBlock  Grid.Column="4" HorizontalAlignment="Left" Style="{StaticResource LabelStyle}" Text="Zip:" />
+										<Dale:DaleTextBox   Grid.Column="5" MinWidth="70"  MaxWidth="70" Text="{Binding LocationAddressZip}" InputMask="{StaticResource ZipWithExtension}" />
+									</Grid>
+								</Grid>
+							</Grid>
+							<!--EndRegion Location Address Section-->
+
+							<!--Region Level Manager Section-->
+							<Grid Grid.Row="4" Style="{StaticResource FormComponentContainerStyle}">
+								<Grid.RowDefinitions>
+									<RowDefinition Height="Auto"/>
+									<RowDefinition Height="Auto"/>
+								</Grid.RowDefinitions>
+
+								<Grid>
+									<Dale:DaleSectionHeader Text="Level Manager" />
+								</Grid>
+
+								<Grid Grid.Row="1">
+									<Grid.RowDefinitions>
+										<RowDefinition Height="Auto"/>
+										<RowDefinition Height="Auto"/>										
+										<RowDefinition Height="Auto"/>
+									</Grid.RowDefinitions>
+									<Grid.ColumnDefinitions>
+										<ColumnDefinition SharedSizeGroup="GeneralColumn1" Width="Auto"/>
+										<ColumnDefinition Width="Auto"/>
+										<ColumnDefinition Width="*"/>
+									</Grid.ColumnDefinitions>
+									
+									<!--Level Manager Name-->
+									<Dale:DaleTextBlock Grid.Row="1"   Style="{StaticResource LabelStyle}" Text="Name:" />
+									<Grid Grid.Row="1" Grid.Column="1" >
+										<Grid.ColumnDefinitions>
+											<ColumnDefinition Width="Auto"/>
+											<ColumnDefinition Width="Auto"/>
+										</Grid.ColumnDefinitions>
+										<Dale:DaleComboBox Width="385"  ItemsSource="{Binding DataContext.LevelManagerDisplays, ElementName=LayoutRoot}"
+												 DisplayMemberPath="FullName" SelectedValuePath="LevelManagerId" SelectedValue="{Binding LevelManagerID}" />
+
+										<!--Edit Title Button-->
+										<Dale:DaleToolBarControl Grid.Column="1" AutomationProperties.AutomationId="tbLevelManagerTitleButtons" IsEnabled="{Binding HasLevelManager}" VerticalAlignment="Bottom">
+											<Dale:DaleRibbonButton Content="Edit Title" Glyph="{StaticResource Edit16}" ToolTip="Edit Level manager title." ItemClick="LevelManagerTitleEdit_Click"/>
+										</Dale:DaleToolBarControl>
+									</Grid>
+									
+									<!--Level Manager Signature-->
+									<Dale:DaleTextBlock Grid.Row="3"  Style="{StaticResource LabelStyle}" Text="Signature:"/>
+									<Grid Grid.Row="3" Grid.Column="1">
+										<Grid.ColumnDefinitions>
+											<ColumnDefinition Width="Auto"/>
+											<ColumnDefinition Width="Auto"/>
+										</Grid.ColumnDefinitions>
+
+										<Dale:DaleTextBlock Width="268" Text="{Binding LevelManagerSignatureValue, FallbackValue='No Signature Attached'}" Style="{StaticResource DisplayValueStyle}"/>
+									
+										<!--Level Manager Signature Buttons-->
+										<Dale:DaleToolBarControl Grid.Column="1" AutomationProperties.AutomationId="tbLevelSignatureManagerButtons" VerticalAlignment="Bottom" IsEnabled="{Binding HasLevelManager}">
+											<Dale:DaleRibbonButton Content="Upload" IsEnabled="{Binding HasLevelManager}"  Glyph="{StaticResource Add16}" ToolTip="Upload signature" ItemClick="UploadLevelManagerSignature_Click"/>
+											<Dale:DaleRibbonButton Content="View" IsEnabled="{Binding HasLevelManagerSignature}" Glyph="{StaticResource ViewImage16}" ToolTip="View signature" ItemClick="ViewLevelManagerSignature_Click" />
+											<Dale:DaleRibbonButton Content="Remove" IsEnabled="{Binding HasLevelManagerSignature}"  Glyph="{StaticResource Delete16}" ToolTip="Remove signature" ItemClick="RemoveLevelManagerSignature_Click" />
+										</Dale:DaleToolBarControl>
+									</Grid>
+								</Grid>
+							</Grid>
+							<!--EndRegion Level Manager Section-->
+
+						</Grid>
+					</Dale:DaleTabItem>
+					<!--EndRegion General Tab-->
+
+					<!--Region Rooms Tab-->
+					<Dale:DaleTabItem IsSelected="{Binding DataContext.IsRoomsTabActive, ElementName=LayoutRoot}">
+						<Dale:DaleTabItem.Header>
+							<TextBlock Style="{StaticResource MainTabItemHeaderTextStyle}">Rooms</TextBlock>
+						</Dale:DaleTabItem.Header>
+						
+						<Grid>
+							<Grid.RowDefinitions>
+								<RowDefinition Height="Auto"/>
+								<RowDefinition Height="*"/>
+							</Grid.RowDefinitions>
+							
+							<!--Region Rooms Loading Overlay-->
+							<Dale:DaleLoadingPanel Grid.Row="0" Grid.Column="0" Grid.RowSpan="2" StatusText="Loading Rooms..." Panel.ZIndex="999" Visibility="{Binding IsLoadingRooms, Converter={StaticResource BoolToVisibilityConvert}, FallbackValue=Collapsed}"/>							
+							<!--EndRegion Rooms Loading Overlay-->
+
+							<!--Region Header Buttons-->
+							<Grid Grid.Row="0">
+								<Grid.ColumnDefinitions>
+									<ColumnDefinition Width="*"/>
+									<ColumnDefinition Width="Auto"/>
+								</Grid.ColumnDefinitions>
+
+								<Dale:DaleToolBarControl IsEnabled="{Binding IsBuildingVisible}" Grid.Row="0" Grid.Column="0" AutomationProperties.AutomationId="tbBuildingButtons">
+									<Dale:DaleRibbonButton Glyph="{StaticResource Edit16}" ToolTip="Edit Building" Content="Edit" ItemClick="EditBuilding_Click"/>
+									<Dale:DaleRibbonButton Glyph="{StaticResource Owner16}" ToolTip="Assign Owner to Building" Content="Set Owner" ItemClick="SetOwner_Click"/>
+									<Dale:DaleRibbonButton Glyph="{StaticResource Room16}" ToolTip="Move Rooms to another Room." Content="Room Move" ItemClick="MoveRooms_Click"/>
+								</Dale:DaleToolBarControl>
+
+								<!--Show Active Only Checkbox-->
+								<Dale:DaleCheckBox Grid.Column="1" IsEnabled="{Binding HasAnyRooms}" Grid.Row="0"  IsChecked="{Binding ShowActiveRoomsOnly}" HorizontalAlignment="Right"  Content="Show Active Rooms Only" />
+
+							</Grid>
+							<!--EndRegion Header Buttons-->
+
+							<!--Region Rooms Grid-->
+							<Grid Grid.Row="2" Style="{StaticResource FormComponentContainerStyle}">
+								<Dale:DaleGridControl ItemsSource="{Binding Rooms}" SelectionMode="Row" x:Name="dgRooms" IsEnabled="{Binding IsBuildingVisible}" 
+													SelectedItem="{Binding DataContext.SelectedBuilding, ElementName=LayoutRoot}"  
+													SelectedItems="{Binding DataContext.SelectedRooms, ElementName=LayoutRoot}"  
+													MouseDoubleClick="dgvRooms_DoubleClick" KeyDown="dgvRooms_KeyDown" AutomaticallyBestFitColumns="{Binding AutomaticallyBestFitBuildingColumns}">
+									<dxg:GridControl.Columns>
+										<dxg:GridColumn FieldName="BuildingCode" Binding="{Binding Code}" Header="Code"/>
+										<dxg:GridColumn FieldName="BuildingName" Binding="{Binding Name}" Header="Name"/>
+										<dxg:GridColumn FieldName="BuildingStatus" Binding="{Binding Status}" Header="Status"/>
+										<dxg:GridColumn FieldName="OwnerName"  Binding="{Binding Owner}" Header="Owner"/>
+									</dxg:GridControl.Columns>
+									<Dale:DaleGridControl.View>
+										<dxg:TableView/>
+									</Dale:DaleGridControl.View>
+								</Dale:DaleGridControl>
+							</Grid>
+							<!--EndRegion Rooms Grid-->
+						</Grid>
+					</Dale:DaleTabItem>
+					<!--EndRegion Rooms Tab-->
+
+					<!--Region RoomTypeA / NP Instances Tab-->
+					<Dale:DaleTabItem DataContext="{Binding RoomTypeAInstanceTabDisplay}">
+						<Dale:DaleTabItem.Header>
+							<TextBlock Style="{StaticResource MainTabItemHeaderTextStyle}">RoomTypeA / NP Instances</TextBlock>
+						</Dale:DaleTabItem.Header>
+
+						<Grid>
+							<Grid.RowDefinitions>
+								<RowDefinition Height="Auto"/>
+								<RowDefinition Height="Auto"/>
+								<RowDefinition Height="*"/>
+							</Grid.RowDefinitions>
+							
+							<!--Region Instance Loading Panel-->
+							<Dale:DaleLoadingPanel Grid.Row="0" Grid.RowSpan="3" StatusText="Loading Instances..." Visibility="{Binding IsLoadingInstanceDisplays, Converter={StaticResource BoolToVisibilityConvert}, FallbackValue=Collapsed}" Panel.ZIndex="1000"/>
+							<!--EndRegion-->
+
+							<!--Region Header Section - Buttons-->
+							<Dale:DaleToolBarControl Grid.Row="0" AutomationProperties.AutomationId="RoomTypeAInstanceButtons">
+								<Dale:DaleRibbonButton Content="Refresh" Glyph="{StaticResource Refresh16}" ToolTip="{StaticResource InstanceRefreshTooltip}" ItemClick="RefreshInstances_ButtonClick"/>
+								<Dale:DaleRibbonButton Content="View Instance"  Glyph="{StaticResource RoomTypeA16}" ToolTip="{StaticResource ViewInstanceTooltip}"
+													 ItemClick="ViewSelectedInstance_ButtonClick" IsEnabled="{Binding IsSingleInstanceSelected}"/>
+								<Dale:DaleRibbonButton Content="Move Instances" Glyph="{StaticResource Move16}" ToolTip="{StaticResource MoveInstanceTooltip}"
+													 ItemClick="MoveInstances_ButtonClick" IsEnabled="{Binding IsAnyInstanceSelected}"/>
+								<Dale:DaleRibbonButton Content="Change Room Payment Account" Glyph="{StaticResource EditRoomPayment16}"
+													 ItemClick="ChangeRoomPaymentAccount_ButtonClick" IsEnabled="{Binding IsAnyInstanceSelected}"/>
+							</Dale:DaleToolBarControl>
+							<!--EndRegion Header Section - Buttons-->
+
+							<!--Region Instance Filter-->	
+							<StackPanel Grid.Row="1" Orientation="Horizontal">								
+								<Dale:DaleTextBlock Style="{StaticResource LabelStyle}" Text="Filter Instances by: "/>
+								<Rooms:RoomInstanceFilterControl FilterTypes="{Binding InstanceFilterTypes}" SelectedFilterType="{Binding SelectedFilterType, Mode=TwoWay}" Owners="{Binding Owners}"
+															   SelectedFilterValue="{Binding SelectedFilterValue, Mode=TwoWay}" UxManager="{Binding DataContext, ElementName=LayoutRoot}"/>
+							</StackPanel>
+							<!--EndRegion-->
+
+							<!--Region NP/RoomTypeA Instances Grid-->
+							<Grid Grid.Row="2">
+								<Dale:DaleGridControl MouseDoubleClick="InstancesGrid_DoubleClick" SelectedItem="{Binding SelectedInstance}" 
+													SelectedItems="{Binding SelectedInstances}"	Style="{StaticResource InstanceGridControlStyle}"													
+													ItemsSource="{Binding InstanceDisplays}" KeyDown="Grid_KeyDown" IsEnabled="{Binding HasInstances}">
+									<dxg:GridControl.Columns>
+										<dxg:GridColumn FieldName="Number" Binding="{Binding InstanceNumberDisplay}" Header="Number"/>
+										<dxg:GridColumn FieldName="RenterName" Binding="{Binding Renter}" Header="Renter"/>
+										<dxg:GridColumn FieldName="InstanceType" Binding="{Binding Type}" Header="Type"/>
+										<dxg:GridColumn FieldName="InstanceStatus"  Binding="{Binding Status}" Header="Status"/>
+										<dxg:GridColumn FieldName="BuildingName" Binding="{Binding Building}" Header="Building"/>
+										<dxg:GridColumn FieldName="RoomateName" Binding="{Binding Roomate}" Header="Roomate"/>
+										<dxg:GridColumn FieldName="RoomPaymentAccount" Binding="{Binding RoomPaymentAcct}" Header="Room Payment Acct"/>
+										<dxg:GridColumn FieldName="OwnerName"  Binding="{Binding Owner}" Header="Owner"/>
+									</dxg:GridControl.Columns>
+								</Dale:DaleGridControl>
+							</Grid>
+							<!--EndRegion NP/RoomTypeA Instances Grid-->
+						</Grid>
+					</Dale:DaleTabItem>
+					<!--EndRegion RoomTypeA / NP Instances Tab-->
+
+					<!--Region RoomTypeB Instances Tab-->
+					<Dale:DaleTabItem DataContext="{Binding RoomTypeBInstanceTabDisplay}">
+						<Dale:DaleTabItem.Header>
+							<TextBlock Style="{StaticResource MainTabItemHeaderTextStyle}">RoomTypeB Instances</TextBlock>
+						</Dale:DaleTabItem.Header>
+
+						<Grid>
+							<Grid.RowDefinitions>
+								<RowDefinition Height="Auto"/>
+								<RowDefinition Height="Auto"/>
+								<RowDefinition Height="*"/>
+							</Grid.RowDefinitions>
+							
+							<!--Region Instance Loading Panel-->
+							<Dale:DaleLoadingPanel Grid.Row="0" Grid.RowSpan="3" StatusText="Loading Instances..." Visibility="{Binding IsLoadingInstanceDisplays, Converter={StaticResource BoolToVisibilityConvert}, FallbackValue=Collapsed}" Panel.ZIndex="1000"/>
+							<!--EndRegion-->
+
+							<!--Region Header Section - Buttons-->
+							<Dale:DaleToolBarControl Grid.Row="0" AutomationProperties.AutomationId="RoomTypeAInstanceButtons">
+								<Dale:DaleRibbonButton Content="Refresh" Glyph="{StaticResource Refresh16}" ToolTip="{StaticResource InstanceRefreshTooltip}" ItemClick="RefreshInstances_ButtonClick"/>
+								<Dale:DaleRibbonButton Content="View Instance" Glyph="{StaticResource RoomTypeB16}" ToolTip="{StaticResource ViewInstanceTooltip}"
+													 ItemClick="ViewSelectedInstance_ButtonClick" IsEnabled="{Binding IsSingleInstanceSelected}"/>
+								<Dale:DaleRibbonButton Content="Move Instances" Glyph="{StaticResource Move16}" ToolTip="{StaticResource MoveInstanceTooltip}"
+													 ItemClick="MoveInstances_ButtonClick" IsEnabled="{Binding IsAnyInstanceSelected}"/>
+								<Dale:DaleRibbonButton Content="Change Room Payment Account" Glyph="{StaticResource EditRoomPayment16}" 
+													 ItemClick="ChangeRoomPaymentAccount_ButtonClick" IsEnabled="{Binding IsAnyInstanceSelected}"/>
+							</Dale:DaleToolBarControl>						
+							<!--EndRegion Header Section - Buttons-->
+
+							<!--Region Instance Filter-->	
+							<StackPanel Grid.Row="1" Orientation="Horizontal">								
+								<Dale:DaleTextBlock Style="{StaticResource LabelStyle}" Text="Filter Instances by: "/>
+								<Rooms:RoomInstanceFilterControl FilterTypes="{Binding InstanceFilterTypes}" SelectedFilterType="{Binding SelectedFilterType, Mode=TwoWay}" 
+															   SelectedFilterValue="{Binding SelectedFilterValue, Mode=TwoWay}" UxManager="{Binding DataContext, ElementName=LayoutRoot}"/>
+							</StackPanel>
+							<!--EndRegion-->
+
+							<!--Region RoomTypeB Instances Grid-->
+							<Grid Grid.Row="2">
+								<Dale:DaleGridControl Grid.Row="2" SelectedItem="{Binding SelectedInstance}" SelectedItems="{Binding SelectedInstances}" ItemsSource="{Binding InstanceDisplays}" Style="{StaticResource InstanceGridControlStyle}"
+													MouseDoubleClick="InstancesGrid_DoubleClick" KeyDown="Grid_KeyDown" AutomaticallyBestFitColumns="True" IsEnabled="{Binding HasInstances}">
+									<dxg:GridControl.Columns>
+										<dxg:GridColumn FieldName="Number" Binding="{Binding InstanceNumberDisplay}" Header="Number"/>
+										<dxg:GridColumn FieldName="RenterName" Binding="{Binding Renter}" Header="Renter"/>
+										<dxg:GridColumn FieldName="InstanceStatus" Binding="{Binding Status}" Header="Status"/>
+										<dxg:GridColumn FieldName="BuildingName" Binding="{Binding Building}" Header="Building"/>
+										<dxg:GridColumn FieldName="BuildingContractRoomateName" Binding="{Binding BuildingContractRoomate}" Header="Building Contract Roomate"/>
+										<dxg:GridColumn FieldName="RoomPaymentAcount" Binding="{Binding RoomPaymentAcct}" Header="Room Payment Acct"/>
+										<dxg:GridColumn FieldName="OwnerName"  Binding="{Binding Owner}" Header="Owner"/>									
+									</dxg:GridControl.Columns>
+								</Dale:DaleGridControl>
+							</Grid>
+							<!--EndRegion RoomTypeB Instances Grid-->
+						</Grid>
+
+					</Dale:DaleTabItem>
+					<!--EndRegion RoomTypeB Instances Tab-->
+
+					<!--Region RoomTypeC Instances Tab-->
+					<Dale:DaleTabItem DataContext="{Binding RoomTypeCInstanceTabDisplay}">
+						<Dale:DaleTabItem.Header>
+							<TextBlock Style="{StaticResource MainTabItemHeaderTextStyle}">RoomTypeC Instances</TextBlock>
+						</Dale:DaleTabItem.Header>
+						<Grid>
+							<Grid.RowDefinitions>
+								<RowDefinition Height="Auto"/>
+								<RowDefinition Height="Auto"/>
+								<RowDefinition Height="*"/>
+							</Grid.RowDefinitions>
+							
+							<!--Region RoomTypeB Instance Loading Panel-->
+							<Dale:DaleLoadingPanel Grid.Row="0" Grid.RowSpan="3" StatusText="Loading Instances..." Visibility="{Binding IsLoadingInstanceDisplays, Converter={StaticResource BoolToVisibilityConvert}, FallbackValue=Collapsed}" Panel.ZIndex="1000"/>
+							<!--EndRegion-->
+
+							<!--Region Header Section - Buttons-->
+							<Dale:DaleToolBarControl Grid.Row="0" AutomationProperties.AutomationId="RoomTypeAInstanceButtons">
+								<Dale:DaleRibbonButton Content="Refresh" Glyph="{StaticResource Refresh16}" ToolTip="{StaticResource InstanceRefreshTooltip}" ItemClick="RefreshInstances_ButtonClick"/>
+								<Dale:DaleRibbonButton Content="View Instance" Glyph="{StaticResource RoomTypeCInstance16}" ToolTip="{StaticResource ViewInstanceTooltip}"
+													 ItemClick="ViewSelectedInstance_ButtonClick" IsEnabled="{Binding IsSingleInstanceSelected}"/>
+								<Dale:DaleRibbonButton Content="Move Instances" Glyph="{StaticResource Move16}" ToolTip="{StaticResource MoveInstanceTooltip}"
+													 ItemClick="MoveInstances_ButtonClick" IsEnabled="{Binding IsAnyInstanceSelected}"/>
+								<Dale:DaleRibbonButton Content="Change Room Payment Account" Glyph="{StaticResource EditRoomPayment16}"
+													 ItemClick="ChangeRoomPaymentAccount_ButtonClick" IsEnabled="{Binding IsAnyInstanceSelected}"/>
+							</Dale:DaleToolBarControl>
+							<!--EndRegion Header Section - Buttons-->							
+
+							<!--Region Instance Filter-->	
+							<StackPanel Grid.Row="1" Orientation="Horizontal">								
+								<Dale:DaleTextBlock Style="{StaticResource LabelStyle}" Text="Filter Instances by: "/>
+								<Rooms:RoomInstanceFilterControl FilterTypes="{Binding InstanceFilterTypes}" SelectedFilterType="{Binding SelectedFilterType, Mode=TwoWay}" 
+															   SelectedFilterValue="{Binding SelectedFilterValue, Mode=TwoWay}" UxManager="{Binding DataContext, ElementName=LayoutRoot}"/>
+							</StackPanel>
+							<!--EndRegion-->
+
+							<!--Region RoomTypeC Instances Grid-->
+							<Grid Grid.Row="2">
+								<Dale:DaleGridControl	SelectedItems="{Binding SelectedInstances}" SelectedItem="{Binding SelectedInstance}" ItemsSource="{Binding InstanceDisplays}" Style="{StaticResource InstanceGridControlStyle}"
+													MouseDoubleClick="InstancesGrid_DoubleClick" KeyDown="Grid_KeyDown" IsEnabled="{Binding HasInstances}">
+									<dxg:GridControl.Columns>
+										<dxg:GridColumn FieldName="Number" Binding="{Binding InstanceNumberDisplay}" Header="Number"/>
+										<dxg:GridColumn FieldName="RenterName" Binding="{Binding Renter}" Header="Renter"/>
+										<dxg:GridColumn FieldName="InstanceStatus" Binding="{Binding Status}" Header="Status"/>
+										<dxg:GridColumn FieldName="BuildingName" Binding="{Binding Building}" Header="Building"/>
+										<dxg:GridColumn FieldName="RoomPaymentAccount" Binding="{Binding RoomPaymentAcct}" Header="Room Payment Acct"/>
+									</dxg:GridControl.Columns>
+								</Dale:DaleGridControl>
+							</Grid>
+							<!--EndRegion RoomTypeC Instances Grid-->
+						</Grid>
+					</Dale:DaleTabItem>
+					<!--EndRegion RoomTypeC Instances Tab-->
+				</Dale:DaleTabControl>
+			</Grid>
+		</Grid>
+		<!--EndRegion Tabs-->
+	</Grid>
+</ew:AppWindowBase>
